@@ -42,7 +42,7 @@ const SimulationConfigModal: React.FC<SimulationConfigModalProps> = ({ isOpen, o
                 <label htmlFor="sim-obj" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Objective Function</label>
                 <select id="sim-obj" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option>Maximize Minimum SNR in Zone...</option>
-                    <option>Maximize Coverage > -65dBm</option>
+                    <option>Maximize Coverage &gt; -65dBm</option>
                     <option>Minimize Channel Interference</option>
                 </select>
             </div>

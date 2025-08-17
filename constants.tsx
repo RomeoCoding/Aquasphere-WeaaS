@@ -1,5 +1,5 @@
 import React from 'react';
-import { Project, User, Scan, Simulation, ScanStatus, SimulationStatus, Notification, Asset, AssetType, ChatChannel, ChatMessage } from './types';
+import { Project, User, Scan, Simulation, ScanStatus, SimulationStatus, Notification, Asset, AssetType, ChatChannel, ChatMessage, ActiveSession } from './types';
 
 // Mock Users
 export const user1: User = { id: 'u1', name: 'Alice', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' };
@@ -102,20 +102,23 @@ export const MOCK_ASSETS: Asset[] = [
     { id: 'tx-wifi', name: 'Wi-Fi 6E AP', type: AssetType.Transmitter, icon: 'wifi', description: 'Omnidirectional Wi-Fi 6E Access Point.' },
     { id: 'tx-5g', name: '5G Small Cell', type: AssetType.Transmitter, icon: 'cellTower', description: 'Directional 5G NR Small Cell.' },
     { id: 'rx-laptop', name: 'Laptop', type: AssetType.Receiver, icon: 'laptop', description: 'Standard laptop receiver.' },
-    { id: 'rx-mobile', name: 'Mobile Device', type: AssetType.Receiver, icon: 'mobile', description: 'Mobile phone receiver.' },
-    { id: 'rx-iot', name: 'IoT Sensor', type: AssetType.Receiver, icon: 'iot', description: 'Low-power static IoT sensor.' },
-    { id: 'ris-2.4', name: 'RIS Panel (2.4 GHz)', type: AssetType.RIS, icon: 'ris', description: '16x16 Element Reconfigurable Intelligent Surface.' },
-    { id: 'ris-28', name: 'RIS Panel (28 GHz)', type: AssetType.RIS, icon: 'ris', description: '32x32 Element Reconfigurable Intelligent Surface for mmWave.' },
+    { id: 'ris-2.4', name: 'RIS Panel', type: AssetType.RIS, icon: 'ris', description: '16x16 Element Reconfigurable Intelligent Surface.' },
+];
+
+// --- MOCK DATA FOR ACCOUNT SECURITY ---
+export const MOCK_SESSIONS: ActiveSession[] = [
+    { id: 's1', deviceType: 'desktop', browser: 'Chrome', os: 'macOS', location: 'New York, NY', lastActive: 'now', isCurrent: true },
+    { id: 's2', deviceType: 'mobile', browser: 'Safari', os: 'iOS', location: 'New York, NY', lastActive: '2 hours ago', isCurrent: false },
+    { id: 's3', deviceType: 'desktop', browser: 'Firefox', os: 'Windows 11', location: 'Chicago, IL', lastActive: '3 days ago', isCurrent: false },
 ];
 
 
 // SVG Icons as React Components for easier use with Tailwind
-export const ICONS: { [key: string]: React.ReactNode } = {
+export const ICONS = {
   logo: (
-    <g>
-        <path d="M12 2a10 10 0 100 20 10 10 0 000-20z" stroke="currentColor" strokeWidth="1.5" opacity="0.3"/>
-        <path d="M6.343 6.343a8 8 0 1011.314 11.314" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M17.657 6.343a8 8 0 10-11.314 11.314" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
+    <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <path d="M3 21c2-6.5 6-10 9-11s7 4.5 9 11" opacity="0.7"/>
+        <path d="M9 15.5c1-3 2-4 3-4.5s2 1.5 3 4.5"/>
     </g>
   ),
   home: (<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>),
@@ -142,7 +145,17 @@ export const ICONS: { [key: string]: React.ReactNode } = {
   moon: (<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>),
   settings: (<g strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path></g>),
   key: (<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>),
-  
+  'shield-check': (<path d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.602-3.751m-.223-1.44a11.959 11.959 0 00-5.432-3.636m-1.226 0c-.317 0-.63.023-.936.065" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>),
+  'lock': (<path d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>),
+  'desktop': (<g strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"><rect x="3" y="3" width="18" height="12" rx="2"/><line x1="7" y1="21" x2="17" y2="21"/><line x1="12" y1="15" x2="12" y2="21"/></g>),
+  'signal-block': (<g strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"><path d="M12 12h.01"/><path d="M8.5 15.5h.01"/><path d="M15.5 15.5h.01"/><path d="M5 8.5h.01"/><path d="M19 8.5h.01"/><path d="M12 20l-7.5-7.5a1 1 0 010-1.414l7.5-7.5 7.5 7.5a1 1 0 010 1.414L12 20z"/></g>),
+  'inefficient-coverage': (<g strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"><path d="M5 12.55a11 11 0 0114 0"/><path d="M2 8.82a19 19 0 0120 0"/><path d="M8 16.29a5 5 0 018 0"/><path d="M12 20v.01"/><path d="M12 2v2"/></g>),
+  'design-guesswork': (<g strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"><path d="M3 3h18v18H3z"/><path d="M12 16v.01"/><path d="M12 13a2 2 0 00.91-3.75 2.25 2.25 0 00-2.34-2.34 2 2 0 10-1.16 4.04"/></g>),
+  'scanner': (<g strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"><path d="M5 12H3L3 19a2 2 0 002 2h14a2 2 0 002-2v-7l-2 0"/><path d="M5 12l2-7h10l2 7"/><path d="M12 12V8"/></g>),
+  'design-tool': (<g strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"><path d="M12 3v18"/><path d="M18 6l-6 6-6-6"/><path d="M18 18l-6-6-6 6"/></g>),
+  'google': (<path d="M21.35 11.1H12.18v2.8h4.94c-.23 1.2-.88 2.3-1.95 3.03v2.4h3.08c1.8-1.65 2.84-4.08 2.84-6.93c0-.75-.07-1.48-.2-2.2zM4 12c0 2.44 1.57 4.51 3.76 5.48l3.08-2.4c-.7-0.66-1.1-1.6-1.1-2.78H4v-2.8h4.92c.1-.5.16-1.02.16-1.55c0-.53-.06-1.05-.16-1.55H4V12zm6.18-7.43v2.25h2.5c2.3 0 4.18 1.83 4.18 4.18c0 1.2-.5 2.3-1.3 3.1l3.1 2.4c1.8-1.7 2.9-4.2 2.9-7.1c0-4.97-4.03-9-9-9c-2.4 0-4.6.9-6.2 2.4l2.8 2.2c1-1.3 2.5-2.1 4.3-2.1z" fill="currentColor" stroke="none"/>),
+  'github': (<path d="M9 19c-4.28 1.44-4.28-2.55-4.28-2.55s1.52.48 2.72-.96A7.4 7.4 0 0112 14c1.4 0 2.76.38 3.96.96 1.2.96 2.72.96 2.72.96s0 4-4.28 2.55M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>),
+
   // Studio & Collaboration Icons
   move: (<path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>),
   rotate: (<g strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></g>),

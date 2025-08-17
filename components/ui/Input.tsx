@@ -3,9 +3,10 @@ import React from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  rightAdornment?: React.ReactNode;
 }
 
-const Input: React.FC<InputProps> = ({ label, id, ...props }) => {
+const Input: React.FC<InputProps> = ({ label, id, rightAdornment, ...props }) => {
   return (
     <div>
       {label && (
@@ -13,11 +14,18 @@ const Input: React.FC<InputProps> = ({ label, id, ...props }) => {
           {label}
         </label>
       )}
-      <input
-        id={id}
-        className="w-full bg-gray-200 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        {...props}
-      />
+      <div className="relative">
+        <input
+          id={id}
+          className={`w-full bg-gray-200 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${rightAdornment ? 'pr-10' : ''}`}
+          {...props}
+        />
+        {rightAdornment && (
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                {rightAdornment}
+            </div>
+        )}
+      </div>
     </div>
   );
 };

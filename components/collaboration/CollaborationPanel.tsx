@@ -86,7 +86,7 @@ const CollaborationPanel: React.FC<CollaborationPanelProps> = ({
   };
 
   return (
-    <aside className={`fixed top-0 right-0 h-full bg-secondary-bg/50 backdrop-blur-md z-40 border-l border-border transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-[400px]'}`}>
+    <aside className={`relative h-full bg-secondary-bg/50 backdrop-blur-md z-40 border-l border-border transition-all duration-300 flex-shrink-0 ${isCollapsed ? 'w-16' : 'w-[400px]'}`}>
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)} 
         className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-16 bg-secondary-bg hover:bg-border rounded-l-md border-y border-l border-border flex items-center justify-center z-50 text-text-secondary hover:text-text-primary"

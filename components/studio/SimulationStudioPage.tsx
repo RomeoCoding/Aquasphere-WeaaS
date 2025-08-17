@@ -1,222 +1,29 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Project, ZoneKPI, SceneObject, Page, Theme, Asset, AssetType, CameraMode, ViewSetting, TransmitterProperties, ReceiverProperties, RISProperties, ChatMessage, AnnotationData, SimulationLog, HeatmapData, Simulation, SimulationStatus } from '../../types';
-import { MOCK_ASSETS, MOCK_CHANNELS, MOCK_MESSAGES, systemUser, currentUser, ICONS } from '../../constants';
+import { Project, ZoneKPI, SceneObject, Page, Theme, Asset, AssetType, CameraMode, ViewSetting, TransmitterProperties, ReceiverProperties, RISProperties, ChatMessage, AnnotationData, SimulationLog, HeatmapData } from '../../types';
+import { MOCK_ASSETS, MOCK_CHANNELS, MOCK_MESSAGES, systemUser, currentUser } from '../../constants';
 import { generateSimulationSummary } from '../../services/geminiService';
+import TopNavBar from '../layout/TopNavBar';
 import LoadingOverlay from './LoadingOverlay';
+import SceneHierarchy from './SceneHierarchy';
+import PropertiesInspector from './PropertiesInspector';
+import SimulationControlBar from './SimulationControlBar';
 import SimulationConfigModal from './SimulationConfigModal';
 import Icon from '../ui/Icon';
+import AssetLibraryPanel from './AssetLibraryPanel';
 import PlacementBanner from './PlacementBanner';
+import ViewportToolbar from './ViewportToolbar';
+import CollaborationPanel from '../collaboration/CollaborationPanel';
 import { generateHeatmapData } from '../../utils/simulation';
 import SimulationProgressOverlay from './SimulationProgressOverlay';
 import HeatmapDisplay from './HeatmapDisplay';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import Input from '../ui/Input';
-import Slider from '../ui/Slider';
-import Select from '../ui/Select';
-import ToggleSwitch from '../ui/ToggleSwitch';
 
-// Sub-components defined in-file for cohesion, as per design mandate
-// These could be broken out into separate files if they grow more complex.
-
-// #region --- Studio Sidebar Components ---
-
-const DesignToolkitPanel: React.FC<{
-    sceneObjects: SceneObject[];
-    selectedObject: SceneObject | null;
-    onSelectObject: (id: string | null) => void;
-    onUpdateObject: (object: SceneObject) => void;
-    onDeleteObject: (id: string) => void;
-    onSelectAssetToPlace: (asset: Asset) => void;
-}> = ({ sceneObjects, selectedObject, onSelectObject, onUpdateObject, onDeleteObject, onSelectAssetToPlace }) => {
-    
-    const renderPropertiesInspector = () => {
-        if (!selectedObject) {
-            return <div className="p-4 text-center text-sm text-text-secondary">Select an object in the Scene Hierarchy to view its properties.</div>;
-        }
-
-        const handlePropertyChange = (newProps: Partial<SceneObject['properties']>) => {
-            onUpdateObject({ ...selectedObject, properties: { ...selectedObject.properties, ...newProps } });
-        };
-
-        const InspectorContent = () => {
-            switch(selectedObject.type) {
-                case AssetType.Transmitter: {
-                    const props = selectedObject.properties as TransmitterProperties;
-                    return (
-                        <div className="space-y-4">
-                            <Slider label="Tx Power (dBm)" min={0} max={30} step={1} value={props.transmitPower} onChange={v => handlePropertyChange({ transmitPower: v })} />
-                            <Select label="Frequency (GHz)" value={String(props.frequency)} onChange={e => handlePropertyChange({ frequency: parseFloat(e.target.value) })}>
-                                <option value="2.4">2.4 GHz</option><option value="5">5 GHz</option><option value="28">28 GHz</option><option value="60">60 GHz</option>
-                            </Select>
-                            <Select label="Antenna Pattern" value={props.antennaPattern} onChange={e => handlePropertyChange({ antennaPattern: e.target.value as any })}>
-                                <option value="Omnidirectional">Omnidirectional</option><option value="Directional">Directional</option>
-                            </Select>
-                        </div>
-                    );
-                }
-                case AssetType.Receiver: {
-                    const props = selectedObject.properties as ReceiverProperties;
-                    return <Slider label="Rx Sensitivity (dBm)" min={-100} max={-30} step={1} value={props.sensitivity} onChange={v => handlePropertyChange({ sensitivity: v })} />;
-                }
-                case AssetType.RIS: {
-                    const props = selectedObject.properties as RISProperties;
-                    return (
-                         <Select label="Phase Bit-Depth" value={props.phaseBitDepth} onChange={e => handlePropertyChange({ phaseBitDepth: e.target.value as any })}>
-                            <option value="Continuous">Continuous (Ideal)</option><option value="2-bit">2-bit</option><option value="1-bit">1-bit</option>
-                        </Select>
-                    );
-                }
-                default: return null;
-            }
-        };
-
-        return (
-            <div className="p-4">
-                <h4 className="font-bold text-text-primary mb-4">{selectedObject.name}</h4>
-                <InspectorContent />
-            </div>
-        );
-    };
-
-    const getIconForType = (type: AssetType): keyof typeof ICONS => {
-        switch(type) {
-            case AssetType.Transmitter: return 'wifi';
-            case AssetType.Receiver: return 'laptop';
-            case AssetType.RIS: return 'ris';
-            default: return 'folder';
-        }
-    }
-
-    return (
-        <div className="flex flex-col h-full">
-            {/* Asset Library Section */}
-            <div className="p-4 border-b border-border">
-                <h3 className="text-sm font-bold uppercase text-text-secondary tracking-wider">Place Asset</h3>
-                <div className="grid grid-cols-4 gap-2 mt-2">
-                    {MOCK_ASSETS.map(asset => (
-                        <button key={asset.id} onClick={() => onSelectAssetToPlace(asset)} title={asset.name} className="flex flex-col items-center p-2 rounded-md bg-secondary-bg hover:bg-border transition-colors">
-                            <Icon name={asset.icon as any} className="w-6 h-6 text-primary-accent" />
-                            <span className="text-xs mt-1 text-text-secondary truncate">{asset.name}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Scene Hierarchy Section */}
-            <div className="p-4 border-b border-border flex-1 overflow-y-auto">
-                <h3 className="text-sm font-bold uppercase text-text-secondary tracking-wider mb-2">Scene Hierarchy</h3>
-                {sceneObjects.length > 0 ? (
-                    <ul className="space-y-1">
-                        {sceneObjects.map(obj => (
-                             <li 
-                                key={obj.id}
-                                onClick={() => onSelectObject(obj.id)}
-                                className={`flex items-center justify-between p-2 text-sm rounded-md cursor-pointer group ${selectedObject?.id === obj.id ? 'bg-primary-accent/20 text-text-primary' : 'hover:bg-secondary-bg'}`}
-                            >
-                                <div className="flex items-center space-x-2 truncate">
-                                    <Icon name={getIconForType(obj.type)} className="w-4 h-4 text-text-secondary flex-shrink-0" />
-                                    <span className="truncate">{obj.name}</span>
-                                </div>
-                                <button onClick={(e) => { e.stopPropagation(); onDeleteObject(obj.id); }} title="Delete" className="p-1 rounded hover:bg-border opacity-0 group-hover:opacity-100">
-                                    <Icon name="delete" className="w-4 h-4 text-red-500"/>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <div className="text-center text-sm text-text-secondary py-4">No objects in scene.</div>
-                )}
-            </div>
-
-            {/* Properties Inspector Section */}
-            <div className="p-4">
-                <h3 className="text-sm font-bold uppercase text-text-secondary tracking-wider mb-2">Properties Inspector</h3>
-                <Card className="bg-primary-bg">
-                    {renderPropertiesInspector()}
-                </Card>
-            </div>
-        </div>
-    );
-};
-
-const ResultsInspectorPanel: React.FC<{
-    simulation: Simulation;
-    heatmapVisible: boolean;
-    setHeatmapVisible: (visible: boolean) => void;
-}> = ({ simulation, heatmapVisible, setHeatmapVisible }) => {
-    return (
-        <div className="p-4 space-y-4">
-            <div>
-                <h3 className="text-sm font-bold uppercase text-text-secondary tracking-wider">Simulation Summary</h3>
-                <Card className="p-3 mt-2 space-y-2">
-                    <p className="font-bold text-text-primary">{simulation.name}</p>
-                    <p className="text-xs text-text-secondary"><strong>Goal:</strong> {simulation.objective}</p>
-                    <div className="pt-2">
-                        <ToggleSwitch enabled={heatmapVisible} onChange={setHeatmapVisible} label="Show Heatmap" />
-                    </div>
-                </Card>
-            </div>
-             <div>
-                <h3 className="text-sm font-bold uppercase text-text-secondary tracking-wider">Global KPIs</h3>
-                <Card className="p-3 mt-2 space-y-2 text-sm">
-                    <div className="flex justify-between"><span>Fitness Score:</span> <span className="font-mono text-green-400">0.982</span></div>
-                    <div className="flex justify-between"><span>Avg. Coverage:</span> <span className="font-mono">94.1%</span></div>
-                </Card>
-            </div>
-             <div>
-                <h3 className="text-sm font-bold uppercase text-text-secondary tracking-wider">Detailed Analytics</h3>
-                <Card className="p-3 mt-2">
-                    {/* Placeholder for detailed metrics */}
-                    <p className="text-center text-sm text-text-secondary py-4">Detailed zone and receiver analytics will be displayed here.</p>
-                </Card>
-            </div>
-        </div>
-    );
-};
-
-// #endregion
-
-// #region --- Studio Bottom Bar & Viewport Components ---
-
-const StudioBottomBar: React.FC<{
-    isResultsView: boolean;
-    onLaunch: () => void;
-    onConfigure: () => void;
-}> = ({ isResultsView, onLaunch, onConfigure }) => (
-    <div className="absolute bottom-0 left-0 right-0 h-20 bg-secondary-bg/80 backdrop-blur-md border-t border-border z-20 flex items-center justify-between px-6">
-        {isResultsView ? (
-            <div>
-                <Button variant="secondary">Compare Results</Button>
-            </div>
-        ) : (
-            <>
-                <Button variant="secondary" onClick={onConfigure}>Configure Simulation</Button>
-                <Button variant="primary" icon="play" onClick={onLaunch}>LAUNCH SIMULATION</Button>
-            </>
-        )}
-    </div>
-);
-
-const HeatmapLegend: React.FC = () => (
-    <div className="absolute bottom-24 right-4 z-20 p-3 rounded-lg bg-secondary-bg/80 backdrop-blur-md border border-border text-xs">
-        <p className="font-bold mb-2 text-text-primary">Signal Strength (dBm)</p>
-        <div className="flex">
-            <div className="w-4 h-32 bg-gradient-to-t from-[#440154] via-[#21918c] to-[#fde725] rounded-sm"></div>
-            <div className="ml-2 flex flex-col justify-between h-32 text-text-secondary">
-                <span>-30</span>
-                <span>-65</span>
-                <span>-100</span>
-            </div>
-        </div>
-    </div>
-);
-
-// #endregion
 
 interface SimulationStudioPageProps {
   project: Project;
-  simulation: Simulation | null;
+  onBack: () => void;
+  onLogout: () => void;
+  onNavigate: (page: Page) => void;
+  initialIsResultsView?: boolean;
   theme: Theme;
   setTheme: (theme: Theme) => void;
 }
@@ -227,98 +34,138 @@ const MOCK_KPIS: ZoneKPI[] = [
     { name: 'Zone-Conference-Room', coverage: 97.8, avgSNR: 31.5, hasWarning: false },
 ];
 
-const PlacedObject: React.FC<{ object: SceneObject; isSelected: boolean; onClick: () => void; }> = ({ object, isSelected, onClick }) => {
-    const assetInfo = MOCK_ASSETS.find(a => a.type === object.type);
-    const color = object.type === AssetType.Transmitter ? 'bg-primary-accent' : object.type === AssetType.Receiver ? 'bg-cyan-500' : 'bg-teal-500';
+const PlacedObject: React.FC<{ object: SceneObject | AnnotationData & {id: string}; isSelected: boolean; onClick: () => void; isAnnotation?: boolean }> = ({ object, isSelected, onClick, isAnnotation = false }) => {
+    const isSceneObject = 'assetId' in object;
+    const assetInfo = isSceneObject ? MOCK_ASSETS.find(a => a.type === object.type) : null;
     
+    let color, iconName;
+
+    if (isAnnotation) {
+        color = 'bg-secondary-accent';
+        iconName = 'pin';
+    } else if (isSceneObject) {
+        color = object.type === AssetType.Transmitter ? 'bg-primary-accent' : object.type === AssetType.Receiver ? 'bg-cyan-500' : 'bg-teal-500';
+        iconName = assetInfo?.icon;
+    }
+    
+    const position = isAnnotation ? (object as AnnotationData).pinPosition : (object as SceneObject).properties.position;
+
     return (
         <div 
             className={`absolute w-5 h-5 rounded-full ${color} transform -translate-x-1/2 -translate-y-1/2 cursor-pointer shadow-lg flex items-center justify-center transition-all duration-200 ${isSelected ? 'ring-4 ring-yellow-400' : 'ring-2 ring-white/50'}`}
-            style={{ left: `${(object.properties.position.x / 10) * 100}%`, top: `${(object.properties.position.y / 10) * 100}%`, zIndex: 5 }}
-            title={object.name}
+            style={{ left: `${(position.x / 10) * 100}%`, top: `${(position.y / 10) * 100}%`, zIndex: isAnnotation ? 10 : 5 }}
+            title={'name' in object ? object.name : 'Annotation'}
             onClick={(e) => { e.stopPropagation(); onClick(); }}
         >
-             {assetInfo?.icon && <Icon name={assetInfo.icon as any} className="w-3 h-3 text-white" />}
+             {iconName && <Icon name={iconName} className="w-3 h-3 text-white" />}
         </div>
     );
 };
 
 
-const SimulationStudioPage: React.FC<SimulationStudioPageProps> = ({ project, simulation, theme, setTheme }) => {
+const SimulationStudioPage: React.FC<SimulationStudioPageProps> = ({ project, onBack, onLogout, onNavigate, initialIsResultsView = false, theme, setTheme }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [isResultsView, setIsResultsView] = useState(!!simulation);
+  const [isResultsView, setIsResultsView] = useState(initialIsResultsView);
+  const [summary, setSummary] = useState('');
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   
+  // Simulation Engine State
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationLogs, setSimulationLogs] = useState<SimulationLog[]>([]);
-  const [simulationProgress, setSimulationProgress] = useState(0);
   const [heatmapData, setHeatmapData] = useState<HeatmapData>(null);
-  const [heatmapVisible, setHeatmapVisible] = useState(true);
+  const [heatmapOpacity, setHeatmapOpacity] = useState(0.65);
 
+  // Scene and Tool State
   const [sceneObjects, setSceneObjects] = useState<SceneObject[]>([]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [assetToPlace, setAssetToPlace] = useState<Asset | null>(null);
   const [ghostPosition, setGhostPosition] = useState<{x: number, y: number} | null>(null);
   
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
-  const [interactiveProbe, setInteractiveProbe] = useState<{pos: {x: string, y: string}, value: number} | null>(null);
+  const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(true);
+  const [isCollaborationPanelCollapsed, setIsCollaborationPanelCollapsed] = useState(false);
+
+  // Viewport State
+  const [cameraMode, setCameraMode] = useState<CameraMode>(CameraMode.Orbit);
+  const [viewSetting, setViewSetting] = useState<ViewSetting>(ViewSetting.TrueColor);
+  
+  // Collaboration State
+  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
+  const [pendingAnnotation, setPendingAnnotation] = useState<AnnotationData | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES[MOCK_CHANNELS[project.id][0].id] || []);
+  const [highlightedAnnotation, setHighlightedAnnotation] = useState<AnnotationData | null>(null);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const selectedObject = sceneObjects.find(obj => obj.id === selectedObjectId) || null;
   const isPlacingAsset = !!assetToPlace;
-  
-  // Effect to handle initial mode
-  useEffect(() => {
-    setIsResultsView(!!simulation);
-    if (simulation) {
-        // If we load into results view, generate some heatmap data
-        const dummyObjects: SceneObject[] = [
-            { id: `asset-1`, assetId: 'tx-wifi', name: `Wi-Fi 6E AP-1`, type: AssetType.Transmitter, visible: true, properties: { position: {x:2,y:3,z:1}, rotation:{x:0,y:0,z:0}, transmitPower: 20, frequency: 5, antennaPattern: 'Omnidirectional' } },
-            { id: `asset-2`, assetId: 'tx-wifi', name: `Wi-Fi 6E AP-2`, type: AssetType.Transmitter, visible: true, properties: { position: {x:8,y:7,z:1}, rotation:{x:0,y:0,z:0}, transmitPower: 22, frequency: 5, antennaPattern: 'Omnidirectional' } }
-        ];
-        setSceneObjects(dummyObjects);
-        setHeatmapData(generateHeatmapData(dummyObjects));
-    }
-  }, [simulation]);
 
+  useEffect(() => { setIsResultsView(initialIsResultsView) }, [initialIsResultsView]);
   const handleLoaded = () => setIsLoading(false);
-  useEffect(() => {
-    const timer = setTimeout(handleLoaded, 1500); // Simulate loading
-    return () => clearTimeout(timer);
-  }, []);
   
+  const addMessage = (newMessage: Omit<ChatMessage, 'id' | 'timestamp' | 'status'>) => {
+    const messageWithMeta: ChatMessage = {
+      ...newMessage,
+      id: `msg-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      status: 'sending',
+    };
+    setMessages(prev => [...prev, messageWithMeta]);
+
+    // Simulate server confirmation
+    setTimeout(() => {
+        setMessages(prev => prev.map(m => m.id === messageWithMeta.id ? { ...m, status: 'sent' } : m));
+    }, 500);
+  };
+
   const handleLaunchSimulation = () => {
     setIsSimulating(true);
     setSimulationLogs([]);
-    setSimulationProgress(0);
+    setHeatmapData(null);
+    setIsResultsView(false);
 
+    const simName = "Q4-High-Fidelity-Test";
     let logId = 0;
+
     const addLog = (message: string, stage: SimulationLog['stage']) => {
       setSimulationLogs(prev => [...prev, { id: logId++, message, stage }]);
     };
 
-    addLog('Job added to queue...', 'QUEUE');
-    setSimulationProgress(10);
-
-    setTimeout(() => {
-        addLog('Worker picked up job.', 'WORKER');
-        setSimulationProgress(25);
-    }, 1000);
+    addMessage({ content: `🤖 **${currentUser.name} started a new simulation:** "${simName}". Status: *Queued*.`, user: systemUser });
+    addLog(`Job "${simName}" added to queue (Celery)...`, 'QUEUE');
     
-    const simInterval = setInterval(() => {
-        setSimulationProgress(p => Math.min(p + 5, 90));
-    }, 250);
+    setTimeout(() => { addLog('Worker picked up job.', 'WORKER'); }, 1000);
+    setTimeout(() => { addLog('Initializing 400x400 grid (High Fidelity)...', 'WORKER'); }, 2000);
+    setTimeout(() => { addLog('Running Evolutionary Algorithm (Generation 1/50)...', 'SIMULATION'); }, 3000);
+    setTimeout(() => { addLog('Running Evolutionary Algorithm (Generation 25/50)...', 'SIMULATION'); }, 4500);
+    setTimeout(() => { addLog('Running Evolutionary Algorithm (Generation 50/50)...', 'SIMULATION'); }, 6000);
+    setTimeout(() => { addLog('Compressing results to .npz format...', 'COMPLETE'); }, 7000);
+    setTimeout(() => { addLog('Uploading results to S3...', 'COMPLETE'); }, 7500);
 
     setTimeout(() => {
-        clearInterval(simInterval);
-        setSimulationProgress(100);
-        addLog('Simulation complete.', 'COMPLETE');
-        const results = generateHeatmapData(sceneObjects);
-        setHeatmapData(results);
-        setTimeout(() => {
-            setIsSimulating(false);
-            setIsResultsView(true);
-        }, 500);
-    }, 4000);
+      addLog('Simulation complete. Fetching results.', 'COMPLETE');
+      const results = generateHeatmapData(sceneObjects);
+      setHeatmapData(results);
+
+      setTimeout(() => {
+        setIsSimulating(false);
+        setIsResultsView(true);
+        addMessage({ content: `🤖 **Simulation "${simName}" has *Completed*.**`, user: systemUser });
+      }, 500);
+    }, 8000);
+  };
+
+
+  const handleGenerateSummary = useCallback(async () => {
+    setIsSummaryLoading(true);
+    const result = await generateSimulationSummary(project.name, "Q3-2025-Coverage-Test-01", "Maximize Min SNR in 'Zone-Marketing'", MOCK_KPIS);
+    setSummary(result);
+    setIsSummaryLoading(false);
+  }, [project.name]);
+
+  const startPlacement = (asset: Asset) => {
+    setAssetToPlace(asset);
+    setSelectedObjectId(null);
+    setIsAnnotationMode(false);
   };
 
   const cancelPlacement = useCallback(() => {
@@ -333,7 +180,7 @@ const SimulationStudioPage: React.FC<SimulationStudioPageProps> = ({ project, si
   };
 
   const handleViewportMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isPlacingAsset || !gridRef.current) return;
+    if ((!isPlacingAsset && !isAnnotationMode) || !gridRef.current) return;
     const rect = gridRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -341,29 +188,21 @@ const SimulationStudioPage: React.FC<SimulationStudioPageProps> = ({ project, si
     else setGhostPosition(null);
   };
 
- const handleViewportClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleViewportClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!gridRef.current) return;
     
     const rect = gridRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-    const xPercent = (clickX / rect.width);
-    const yPercent = (clickY / rect.height);
-    const pos = { x: xPercent * 10, y: yPercent * 10, z: 1 };
+    const x = ((e.clientX - rect.left) / rect.width);
+    const y = ((e.clientY - rect.top) / rect.height);
+    const pos = { x: x * 10, y: y * 10, z: 1 };
     
-    if (isResultsView) {
-        // Guard against trying to read properties of an empty or invalid heatmap array
-        if (heatmapData && heatmapData.length > 0 && heatmapData[0].length > 0) {
-            const gridX = Math.floor(xPercent * heatmapData[0].length);
-            const gridY = Math.floor(yPercent * heatmapData.length);
-            const value = heatmapData[gridY]?.[gridX];
-            if (value !== undefined) {
-                 setInteractiveProbe({ pos: { x: `${xPercent*100}%`, y: `${yPercent*100}%` }, value: Math.round(value * 10)/10 });
-            }
-        }
-        return; // Clicks in results view only probe the heatmap
+    if (isAnnotationMode) {
+      setPendingAnnotation({ pinPosition: pos });
+      setIsAnnotationMode(false);
+      setGhostPosition(null);
+      return;
     }
-
+    
     if (isPlacingAsset && assetToPlace) {
         let newProperties: SceneObject['properties'];
         switch(assetToPlace.type) {
@@ -374,70 +213,71 @@ const SimulationStudioPage: React.FC<SimulationStudioPageProps> = ({ project, si
         }
         const newAsset: SceneObject = { id: `asset-${Date.now()}`, assetId: assetToPlace.id, name: `${assetToPlace.name}-${sceneObjects.length + 1}`, type: assetToPlace.type, visible: true, properties: newProperties };
         setSceneObjects(prev => [...prev, newAsset]);
-        cancelPlacement();
     } else {
-        setSelectedObjectId(null);
-        setInteractiveProbe(null);
+        setSelectedObjectId(null); // Deselect on clicking background
     }
   };
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') cancelPlacement(); };
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') { cancelPlacement(); setIsAnnotationMode(false); } };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cancelPlacement]);
-
-  if (isLoading) {
-    return <LoadingOverlay onLoaded={() => {}} />;
-  }
   
+  const allAnnotations = messages.map((m, i) => m.annotationData ? ({ ...m.annotationData, id: `anno-${m.id}`}) : null).filter(Boolean) as (AnnotationData & {id: string})[];
+
   return (
-    <div className="relative w-full h-full flex bg-primary-bg">
+    <div className="relative w-screen h-screen overflow-hidden bg-primary-bg text-text-primary">
+      {isLoading && <LoadingOverlay onLoaded={handleLoaded} />}
+      <TopNavBar title={`Studio / ${project.name}`} onLogout={onLogout} onNavigate={onNavigate} hideSearch theme={theme} setTheme={setTheme} />
       <SimulationConfigModal isOpen={isConfigModalOpen} onClose={() => setIsConfigModalOpen(false)} onLaunch={handleLaunchSimulation} />
+
+      <main className="absolute top-16 left-0 right-0 bottom-0 flex">
+        <AssetLibraryPanel onSelectAsset={startPlacement} isOpen={isAssetLibraryOpen} setIsOpen={setIsAssetLibraryOpen} />
+        
+        <div className={`flex-1 relative transition-all duration-300 ${!isCollaborationPanelCollapsed ? 'mr-[400px]' : 'mr-16'}`} onMouseMove={handleViewportMouseMove} onClick={handleViewportClick}>
+            {isSimulating && <SimulationProgressOverlay logs={simulationLogs} progress={0} />}
+            {(isPlacingAsset || isAnnotationMode) && <PlacementBanner assetName={isAnnotationMode ? 'Annotation Pin' : assetToPlace!.name} onCancel={() => { cancelPlacement(); setIsAnnotationMode(false); }} />}
+            <ViewportToolbar cameraMode={cameraMode} setCameraMode={setCameraMode} viewSetting={viewSetting} setViewSetting={setViewSetting} />
+            
+            <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ perspective: '1200px' }}>
+                <div ref={gridRef} className="w-[900px] h-[700px] bg-grid-pattern relative transition-transform duration-500" style={{ transform: 'rotateX(60deg) rotateZ(-10deg)', cursor: isPlacingAsset ? 'copy' : isAnnotationMode ? 'crosshair' : 'default' }}>
+                    {isResultsView && heatmapData && <HeatmapDisplay heatmapData={heatmapData} opacity={heatmapOpacity} />}
+                    {isResultsView && <div className="absolute inset-0 bg-gradient-to-br from-primary-accent/10 via-transparent to-cyan-500/10 pointer-events-none"></div>}
+                    
+                    {sceneObjects.filter(o => o.visible).map(obj => <PlacedObject key={obj.id} object={obj} isSelected={obj.id === selectedObjectId && !isAnnotationMode} onClick={() => { setSelectedObjectId(obj.id); setIsAnnotationMode(false); }} />)}
+                    {allAnnotations.map(anno => <PlacedObject key={anno.id} object={anno} isSelected={highlightedAnnotation?.pinPosition === anno.pinPosition} onClick={() => {}} isAnnotation /> )}
+                    
+                    {(isPlacingAsset || isAnnotationMode) && ghostPosition && (
+                        <div className={`absolute w-5 h-5 rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-lg flex items-center justify-center pointer-events-none ring-2 ${isAnnotationMode ? 'bg-secondary-accent/50 ring-secondary-accent' : 'bg-primary-accent/50 ring-primary-accent'}`} style={{ left: `${ghostPosition.x}%`, top: `${ghostPosition.y}%` }}>
+                            <Icon name={isAnnotationMode ? 'pin' : assetToPlace!.icon} className="w-3 h-3 text-white" />
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+
+        <PropertiesInspector selectedObject={selectedObject} onUpdateObject={updateSceneObject} isResultsView={isResultsView} simulationKpis={MOCK_KPIS} onGenerateSummary={handleGenerateSummary} summary={summary} isSummaryLoading={isSummaryLoading} heatmapOpacity={heatmapOpacity} setHeatmapOpacity={setHeatmapOpacity} />
+      </main>
       
-      {/* --- Left Sidebar: Design Toolkit or Results Inspector --- */}
-      <aside className="w-80 h-full bg-secondary-bg border-r border-border flex-shrink-0 overflow-y-auto">
-        {isResultsView && simulation ? (
-            <ResultsInspectorPanel simulation={simulation} heatmapVisible={heatmapVisible} setHeatmapVisible={setHeatmapVisible} />
-        ) : (
-            <DesignToolkitPanel 
-                sceneObjects={sceneObjects}
-                selectedObject={selectedObject}
-                onSelectObject={setSelectedObjectId}
-                onUpdateObject={updateSceneObject}
-                onDeleteObject={deleteSceneObject}
-                onSelectAssetToPlace={setAssetToPlace}
-            />
-        )}
-      </aside>
-
-      {/* --- Main Viewport Area --- */}
-      <div className="flex-1 relative" onMouseMove={handleViewportMouseMove} onClick={handleViewportClick}>
-          {isSimulating && <SimulationProgressOverlay logs={simulationLogs} progress={simulationProgress} />}
-          {isPlacingAsset && <PlacementBanner assetName={assetToPlace!.name} onCancel={cancelPlacement} />}
-          
-          <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ perspective: '1200px' }}>
-              <div ref={gridRef} className="w-[90vw] max-w-[1200px] h-[70vh] max-h-[900px] bg-grid-pattern relative transition-transform duration-500" style={{ transform: 'rotateX(60deg) rotateZ(-10deg)', cursor: isPlacingAsset ? 'copy' : (isResultsView ? 'crosshair' : 'default') }}>
-                  {isResultsView && heatmapData && heatmapVisible && <HeatmapDisplay heatmapData={heatmapData} opacity={0.65} />}
-                  
-                  {sceneObjects.filter(o => o.visible).map(obj => <PlacedObject key={obj.id} object={obj} isSelected={obj.id === selectedObjectId} onClick={() => setSelectedObjectId(obj.id)} />)}
-                  
-                  {isPlacingAsset && ghostPosition && (
-                      <div className="absolute w-5 h-5 rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-lg flex items-center justify-center pointer-events-none ring-2 bg-primary-accent/50 ring-primary-accent" style={{ left: `${ghostPosition.x}%`, top: `${ghostPosition.y}%` }}>
-                          <Icon name={assetToPlace!.icon as any} className="w-3 h-3 text-white" />
-                      </div>
-                  )}
-
-                  {isResultsView && interactiveProbe && (
-                    <div className="absolute transform -translate-x-1/2 -translate-y-full p-2 bg-black/80 text-white text-xs rounded-md pointer-events-none" style={{ left: interactiveProbe.pos.x, top: interactiveProbe.pos.y }}>
-                        {interactiveProbe.value} dBm
-                    </div>
-                  )}
-              </div>
-          </div>
-          {isResultsView && heatmapVisible && <HeatmapLegend />}
-          <StudioBottomBar isResultsView={isResultsView} onLaunch={handleLaunchSimulation} onConfigure={() => setIsConfigModalOpen(true)} />
-      </div>
+      <SceneHierarchy sceneObjects={sceneObjects} selectedObjectId={selectedObjectId} onSelectObject={id => { setSelectedObjectId(id); setIsAnnotationMode(false); }} onUpdateObject={updateSceneObject} onDeleteObject={deleteSceneObject} />
+      <SimulationControlBar onLaunch={handleLaunchSimulation} onShowConfig={() => setIsConfigModalOpen(true)} />
+      
+      <CollaborationPanel 
+          project={project}
+          isCollapsed={isCollaborationPanelCollapsed}
+          setIsCollapsed={setIsCollaborationPanelCollapsed}
+          isAnnotationMode={isAnnotationMode}
+          setIsAnnotationMode={setIsAnnotationMode}
+          pendingAnnotation={pendingAnnotation}
+          setPendingAnnotation={setPendingAnnotation}
+          messages={messages}
+          setMessages={setMessages}
+          onViewAnnotation={(data) => {
+              setHighlightedAnnotation(data);
+              setTimeout(() => setHighlightedAnnotation(null), 2000); // Highlight for 2s
+          }}
+      />
 
       <style>{`.bg-grid-pattern { background-image: linear-gradient(theme(colors.border / 0.7) 1px, transparent 1px), linear-gradient(90deg, theme(colors.border / 0.7) 1px, transparent 1px); background-size: 2.5rem 2.5rem; border: 1px solid theme(colors.border); border-radius: 8px; background-color: theme(colors.primary-bg / 0.5); }`}</style>
     </div>

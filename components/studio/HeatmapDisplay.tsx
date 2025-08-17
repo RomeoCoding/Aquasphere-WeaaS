@@ -42,13 +42,9 @@ const HeatmapDisplay: React.FC<HeatmapDisplayProps> = ({ heatmapData, opacity })
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const numRows = heatmapData.length;
-      if (numRows === 0) return; // Guard against empty heatmap data
-      const numCols = heatmapData[0].length;
-      if (numCols === 0) return; // Guard against rows with no data
-
-      const cellSizeX = canvas.width / numCols;
-      const cellSizeY = canvas.height / numRows;
+      const gridSize = heatmapData.length;
+      const cellSizeX = canvas.width / gridSize;
+      const cellSizeY = canvas.height / gridSize;
 
       // Find min/max values in the data for color scaling
       let minVal = Infinity;
@@ -61,14 +57,11 @@ const HeatmapDisplay: React.FC<HeatmapDisplayProps> = ({ heatmapData, opacity })
       });
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const range = maxVal - minVal;
 
-      for (let y = 0; y < numRows; y++) {
-        for (let x = 0; x < numCols; x++) {
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
           const value = heatmapData[y][x];
-          // FIX: If range is 0, all values are the same. Avoid division by zero (NaN).
-          // Default to a mid-range color (0.5) if all values are identical.
-          const normalized = range > 0 ? (value - minVal) / range : 0.5;
+          const normalized = (value - minVal) / (maxVal - minVal);
           const [r, g, b] = viridis(normalized);
           ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
           ctx.fillRect(x * cellSizeX, y * cellSizeY, cellSizeX, cellSizeY);

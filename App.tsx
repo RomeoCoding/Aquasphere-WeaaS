@@ -1,76 +1,52 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Project, Page, Theme, Simulation } from './types';
+import { Project, Simulation, SimulationStatus, Page, Theme } from './types';
 import { MOCK_PROJECTS } from './constants';
-
-// Page Components
+import LoginPage from './components/LoginPage';
 import DashboardPage from './components/dashboard/DashboardPage';
 import ProjectWorkspacePage from './components/project/ProjectWorkspacePage';
 import SimulationStudioPage from './components/studio/SimulationStudioPage';
 import AssetLibraryPage from './components/asset-library/AssetLibraryPage';
 import TeamSettingsPage from './components/team-settings/TeamSettingsPage';
 import BillingPage from './components/billing/BillingPage';
+import MainLayout from './components/layout/MainLayout';
 import ProfilePage from './components/profile/ProfilePage';
 import SettingsPage from './components/settings/SettingsPage';
 
-// Layout
-import MainLayout from './components/layout/MainLayout';
-
-// Public Site Components
-import PublicHeader from './components/public/PublicHeader';
-import PublicFooter from './components/public/PublicFooter';
-import HomePage from './components/public/HomePage';
-import RequestDemoPage from './components/public/RequestDemoPage';
-import TechnologyPage from './components/public/TechnologyPage';
-import LegalPage from './components/public/LegalPage';
-import CookieBanner from './components/public/CookieBanner';
-import PricingPage from './components/public/PricingPage';
-import AboutUsPage from './components/public/AboutUsPage';
-
-// Auth Components
-import LoginPage from './components/auth/LoginPage';
-import RegisterPage from './components/auth/RegisterPage';
-import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
-import VerifyEmailPage from './components/auth/VerifyEmailPage';
-
-// UI Components
-import LoadingIndicator from './components/ui/LoadingIndicator';
-
 
 export enum AppView {
-  PUBLIC,
   LOGIN,
-  REGISTER,
-  FORGOT_PASSWORD,
-  VERIFY_EMAIL,
   AUTHENTICATED,
+  PROJECT_WORKSPACE,
+  SIMULATION_STUDIO,
 }
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AppView>(AppView.PUBLIC);
-  const [publicPage, setPublicPage] = useState<string>('home');
+  const [currentView, setCurrentView] = useState<AppView>(AppView.LOGIN);
   const [currentPage, setCurrentPage] = useState<Page>('Projects');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [activeSimulation, setActiveSimulation] = useState<Simulation | null>(null);
-  const [isStudio, setIsStudio] = useState(false);
-  
   const [isLoading, setIsLoading] = useState(true);
+  const [initialStudioIsResultsView, setInitialStudioIsResultsView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = localStorage.getItem('theme');
-    return (storedTheme as Theme) || 'dark';
+    if (storedTheme) return storedTheme as Theme;
+    // If no theme is stored, default to dark and set it in localStorage
+    localStorage.setItem('theme', 'dark');
+    return 'dark';
   });
 
+
   useEffect(() => {
-    // Simulate checking auth status, e.g., from a token in localStorage
-    const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-    if(isLoggedIn) {
-      setCurrentView(AppView.AUTHENTICATED);
-    }
+    // Simulate checking auth status
     setTimeout(() => setIsLoading(false), 500);
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     localStorage.setItem('theme', theme);
   }, [theme]);
   
@@ -82,147 +58,133 @@ const App: React.FC = () => {
     );
   }, [searchQuery]);
 
-  const handleLoginSuccess = () => {
-    sessionStorage.setItem('isLoggedIn', 'true');
+  const handleLogin = () => {
     setCurrentView(AppView.AUTHENTICATED);
     setCurrentPage('Projects');
   };
   
   const handleLogout = () => {
-    sessionStorage.removeItem('isLoggedIn');
     setSelectedProject(null);
-    setIsStudio(false);
-    setActiveSimulation(null);
-    setCurrentView(AppView.PUBLIC);
-    setPublicPage('home');
+    setCurrentView(AppView.LOGIN);
   }
 
   const handleSelectProject = (project: Project) => {
     setSelectedProject(project);
-    setCurrentPage('Projects'); // Context is a project, but it's not a named page
-    setIsStudio(false);
-    setActiveSimulation(null);
+    setCurrentView(AppView.PROJECT_WORKSPACE);
   };
   
   const handleOpenStudio = (simulation?: Simulation) => {
-    if (!selectedProject) return;
-    setActiveSimulation(simulation || null);
-    setIsStudio(true);
+    setInitialStudioIsResultsView(!!simulation && simulation.status === SimulationStatus.Completed);
+    setCurrentView(AppView.SIMULATION_STUDIO);
   };
 
   const navigateToDashboard = () => {
     setSelectedProject(null);
-    setIsStudio(false);
-    setActiveSimulation(null);
+    setCurrentView(AppView.AUTHENTICATED);
     setCurrentPage('Projects');
   }
   
   const handleNavigate = (page: Page) => {
-    // When navigating from a project context, we reset it
-    if(selectedProject || isStudio) {
-      setSelectedProject(null);
-      setIsStudio(false);
-      setActiveSimulation(null);
-    }
+    setSelectedProject(null);
     setCurrentPage(page);
+    setCurrentView(AppView.AUTHENTICATED);
   }
+
+  const navigateBack = () => {
+    if (currentView === AppView.SIMULATION_STUDIO) {
+      setCurrentView(AppView.PROJECT_WORKSPACE);
+    } else if (currentView === AppView.PROJECT_WORKSPACE) {
+      navigateToDashboard();
+    } else {
+        // From a standard page, go back to projects dashboard
+        handleNavigate('Projects');
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-primary-bg">
-        <LoadingIndicator />
+        <div className="text-text-primary text-xl">Loading AuraSphere...</div>
       </div>
     );
   }
   
-  const renderCoreAppContent = () => {
-    if (isStudio && selectedProject) {
-        return <SimulationStudioPage 
-            project={selectedProject} 
-            simulation={activeSimulation}
-            theme={theme}
-            setTheme={setTheme}
-        />;
-    }
-
-    if (selectedProject) {
-        return <ProjectWorkspacePage project={selectedProject} onOpenStudio={handleOpenStudio} />;
+  const renderAuthenticatedView = () => {
+    let content;
+    // The "Dashboard" nav item is functionally the same as "Projects" in this design
+    if (currentPage === 'Dashboard' || currentPage === 'Projects') {
+        content = <DashboardPage projects={filteredProjects} onSelectProject={handleSelectProject} />
+    } else if (currentPage === 'Asset Library') {
+        content = <AssetLibraryPage />;
+    } else if (currentPage === 'Team Settings') {
+        content = <TeamSettingsPage />;
+    } else if (currentPage === 'Billing') {
+        content = <BillingPage />;
+    } else if (currentPage === 'Profile') {
+        content = <ProfilePage />;
+    } else if (currentPage === 'Settings') {
+        content = <SettingsPage currentTheme={theme} setTheme={setTheme} />;
     }
     
-    switch(currentPage) {
-        case 'Dashboard':
-        case 'Projects':
-            return <DashboardPage projects={filteredProjects} onSelectProject={handleSelectProject} />;
-        case 'Asset Library':
-            return <AssetLibraryPage />;
-        case 'Team Settings':
-            return <TeamSettingsPage />;
-        case 'Billing':
-            return <BillingPage />;
-        case 'Profile':
-            return <ProfilePage />;
-        case 'Settings':
-            return <SettingsPage currentTheme={theme} setTheme={setTheme} />;
-        default:
-            return <DashboardPage projects={filteredProjects} onSelectProject={handleSelectProject} />;
-    }
-  }
-  
-  const renderPublicContent = () => {
-      let pageContent;
-      switch(publicPage) {
-          case 'home': pageContent = <HomePage setPage={setPublicPage} />; break;
-          case 'demo': pageContent = <RequestDemoPage />; break;
-          case 'technology': pageContent = <TechnologyPage />; break;
-          case 'pricing': pageContent = <PricingPage onSignUp={() => setCurrentView(AppView.REGISTER)} />; break;
-          case 'about': pageContent = <AboutUsPage />; break;
-          case 'privacy': pageContent = <LegalPage page='privacy' />; break;
-          case 'terms': pageContent = <LegalPage page='terms' />; break;
-          default: pageContent = <HomePage setPage={setPublicPage} />;
-      }
-
-      return (
-         <div className="bg-primary-bg min-h-screen flex flex-col font-sans">
-            <PublicHeader setPage={setPublicPage} onSignInClick={() => setCurrentView(AppView.LOGIN)} onSignUpClick={() => setCurrentView(AppView.REGISTER)} theme={theme} setTheme={setTheme} />
-            <main className="flex-1">{pageContent}</main>
-            <PublicFooter setPage={setPublicPage} />
-            <CookieBanner />
-        </div>
-      )
-  }
-
-  switch(currentView) {
-    case AppView.PUBLIC:
-      return renderPublicContent();
-    case AppView.LOGIN:
-      return <LoginPage onLoginSuccess={handleLoginSuccess} onNavigateToRegister={() => setCurrentView(AppView.REGISTER)} onNavigateToForgotPassword={() => setCurrentView(AppView.FORGOT_PASSWORD)} />;
-    case AppView.REGISTER:
-        return <RegisterPage onRegisterSuccess={() => setCurrentView(AppView.VERIFY_EMAIL)} onNavigateToLogin={() => setCurrentView(AppView.LOGIN)} />;
-    case AppView.VERIFY_EMAIL:
-        return <VerifyEmailPage onNavigateToLogin={() => setCurrentView(AppView.LOGIN)} />;
-    case AppView.FORGOT_PASSWORD:
-        return <ForgotPasswordPage onNavigateToLogin={() => setCurrentView(AppView.LOGIN)} />;
-    case AppView.AUTHENTICATED:
-      return (
+    return (
         <MainLayout 
             activePage={currentPage} 
-            onNavigate={handleNavigate}
-            navigateToDashboard={navigateToDashboard}
+            onNavigate={handleNavigate} 
             onLogout={handleLogout}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             theme={theme}
             setTheme={setTheme}
             project={selectedProject}
-            isStudio={isStudio}
-            simulation={activeSimulation}
         >
-            {renderCoreAppContent()}
+            {content}
         </MainLayout>
-      );
-    default:
-        return renderPublicContent();
+    );
   }
+
+  const renderContent = () => {
+    switch (currentView) {
+      case AppView.LOGIN:
+        return <LoginPage onLogin={handleLogin} />;
+      
+      case AppView.AUTHENTICATED:
+          return renderAuthenticatedView();
+
+      case AppView.PROJECT_WORKSPACE:
+        return selectedProject ? (
+          <MainLayout 
+            activePage={currentPage} 
+            onNavigate={handleNavigate} 
+            onLogout={handleLogout} 
+            searchQuery={searchQuery} 
+            setSearchQuery={setSearchQuery} 
+            theme={theme} 
+            setTheme={setTheme}
+            project={selectedProject}
+          >
+            <ProjectWorkspacePage project={selectedProject} onOpenStudio={handleOpenStudio} onBack={navigateBack} />
+          </MainLayout>
+        ) : (navigateToDashboard(), null);
+
+      case AppView.SIMULATION_STUDIO:
+        return selectedProject ? (
+            <SimulationStudioPage 
+                project={selectedProject} 
+                onBack={navigateBack}
+                onLogout={handleLogout}
+                onNavigate={handleNavigate}
+                initialIsResultsView={initialStudioIsResultsView}
+                theme={theme}
+                setTheme={setTheme}
+            />
+        ) : (navigateToDashboard(), null);
+
+      default:
+        return <LoginPage onLogin={handleLogin} />;
+    }
+  };
+
+  return <div className="min-h-screen bg-primary-bg">{renderContent()}</div>;
 };
 
 export default App;

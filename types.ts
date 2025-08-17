@@ -87,11 +87,6 @@ export interface Notification {
 
 export type Page = 'Dashboard' | 'Projects' | 'Asset Library' | 'Team Settings' | 'Billing' | 'Profile' | 'Settings';
 
-export type PublicPage = 'home' | 'technology' | 'pricing' | 'about' | 'demo' | 'privacy' | 'terms';
-
-export type AuthPage = 'Login' | 'Register' | 'ForgotPassword' | 'VerifyEmail';
-
-
 // --- NEW TYPE FOR THEME ---
 export type Theme = 'light' | 'dark';
 
@@ -183,14 +178,3 @@ export interface SimulationLog {
 }
 
 export type HeatmapData = number[][] | null;
-
-// --- ACCOUNT & SECURITY TYPES ---
-export interface ActiveSession {
-  id: string;
-  deviceType: 'desktop' | 'mobile';
-  browser: string;
-  os: string;
-  location: string;
-  lastActive: string;
-  isCurrent: boolean;
-}

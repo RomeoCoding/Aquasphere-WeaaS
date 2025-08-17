@@ -1,8 +1,8 @@
+
 import React, { useState } from 'react';
 import Card from '../ui/Card';
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
-import Select from '../ui/Select';
 import SlackIntegrationModal from './SlackIntegrationModal';
 import { user1, user2, user3, user4 } from '../../constants';
 
@@ -18,10 +18,7 @@ const TeamSettingsPage: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Members</h2>
-                <Button variant="primary" icon="plus">Invite New Member</Button>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Members</h2>
             <Card className="p-0">
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                     {teamMembers.map(member => (
@@ -34,11 +31,7 @@ const TeamSettingsPage: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex items-center space-x-4">
-                                <select className="w-32 bg-secondary-bg border border-border rounded-md py-1 px-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-primary-accent">
-                                    <option>Admin</option>
-                                    <option>Editor</option>
-                                    <option>Viewer</option>
-                                </select>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Admin</span>
                                 <Button variant="ghost">
                                     <Icon name="dots" className="w-5 h-5"/>
                                 </Button>

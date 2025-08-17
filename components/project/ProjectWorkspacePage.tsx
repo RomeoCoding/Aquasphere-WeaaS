@@ -10,11 +10,12 @@ import { MOCK_NOTIFICATIONS } from '../../constants';
 interface ProjectWorkspacePageProps {
   project: Project;
   onOpenStudio: (simulation?: Simulation) => void;
+  onBack: () => void;
 }
 
 type ProjectTab = 'notifications' | 'scans' | 'simulations';
 
-const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({ project, onOpenStudio }) => {
+const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({ project, onOpenStudio, onBack }) => {
   const [activeTab, setActiveTab] = useState<ProjectTab>('notifications');
 
   const tabs: { id: ProjectTab, label: string }[] = [
@@ -30,6 +31,10 @@ const ProjectWorkspacePage: React.FC<ProjectWorkspacePageProps> = ({ project, on
   return (
     <div>
           <header className="mb-8">
+            <button onClick={onBack} className="flex items-center text-sm text-primary-accent hover:opacity-80 mb-4">
+                <Icon name="back" className="w-4 h-4 mr-2" />
+                Back to Projects
+            </button>
             <div className="flex justify-between items-start">
                 <div>
                     <h1 className="text-3xl font-bold text-text-primary">{project.name}</h1>

@@ -1,13 +1,13 @@
+
 import React, { useState } from 'react';
 import Card from '../ui/Card';
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
 import ToggleSwitch from '../ui/ToggleSwitch';
-import Input from '../ui/Input';
-import { Theme, ActiveSession } from '../../types';
-import { ICONS, MOCK_SESSIONS } from '../../constants';
+import { Theme } from '../../types';
+import { ICONS } from '../../constants';
 
-type SettingsTab = 'general' | 'notifications' | 'api' | 'security';
+type SettingsTab = 'general' | 'notifications' | 'api';
 
 interface SettingsPageProps {
   currentTheme: Theme;
@@ -31,7 +31,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentTheme, setTheme }) =
         simulationCompleteInApp: false,
         newMentionsEmail: true,
     });
-    const [is2faEnabled, setIs2faEnabled] = useState(false);
 
     const handleToggle = (key: keyof NotificationSettings) => {
         setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
@@ -39,7 +38,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentTheme, setTheme }) =
 
     const tabs: { id: SettingsTab; label: string; icon: keyof typeof ICONS }[] = [
         { id: 'general', label: 'General', icon: 'settings' },
-        { id: 'security', label: 'Security', icon: 'shield-check' },
         { id: 'notifications', label: 'Notifications', icon: 'bell' },
         { id: 'api', label: 'API Access', icon: 'key' },
     ];
@@ -60,52 +58,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentTheme, setTheme }) =
                         </div>
                     </Card>
                 );
-             case 'security':
-                return (
-                    <div className="space-y-8">
-                        <Card className="p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h2>
-                            <div className="space-y-4 max-w-sm">
-                                <Input label="Current Password" id="current-password" type="password" />
-                                <Input label="New Password" id="new-password" type="password" />
-                                <Input label="Confirm New Password" id="confirm-password" type="password" />
-                                <div className="pt-2">
-                                    <Button variant="secondary">Update Password</Button>
-                                </div>
-                            </div>
-                        </Card>
-                        <Card className="p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Two-Factor Authentication (2FA)</h2>
-                            <div className="flex items-start justify-between p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                <div>
-                                    <p className="font-medium text-gray-700 dark:text-gray-300">Enable 2FA</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Protect your account with an extra layer of security.</p>
-                                </div>
-                                <ToggleSwitch enabled={is2faEnabled} onChange={setIs2faEnabled} />
-                            </div>
-                        </Card>
-                         <Card className="p-0">
-                            <div className="p-6 border-b border-border">
-                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Active Sessions</h2>
-                                <p className="text-sm text-text-secondary mt-1">This is a list of devices that have logged into your account. Revoke any sessions you do not recognize.</p>
-                            </div>
-                            <ul>
-                                {MOCK_SESSIONS.map(session => (
-                                    <li key={session.id} className="p-4 flex items-center justify-between border-b border-border last:border-b-0">
-                                        <div className="flex items-center space-x-4">
-                                            <Icon name={session.deviceType === 'desktop' ? 'desktop' : 'mobile'} className="w-8 h-8 text-text-secondary" />
-                                            <div>
-                                                <p className="font-semibold text-text-primary">{session.browser} on {session.os} {session.isCurrent && <span className="text-xs text-green-400 ml-2">(Current session)</span>}</p>
-                                                <p className="text-sm text-text-secondary">{session.location} &bull; Last active {session.lastActive}</p>
-                                            </div>
-                                        </div>
-                                        {!session.isCurrent && <Button variant="ghost" className="text-red-500">Log out</Button>}
-                                    </li>
-                                ))}
-                            </ul>
-                        </Card>
-                    </div>
-                );
             case 'notifications':
                 return (
                     <Card className="p-6">
@@ -118,6 +70,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentTheme, setTheme }) =
                                </div>
                                <div className="flex space-x-4">
                                    <ToggleSwitch enabled={notifications.projectUpdatesEmail} onChange={() => handleToggle('projectUpdatesEmail')} srLabel="Project updates email" />
+                                   {/* <ToggleSwitch enabled={notifications.projectUpdatesInApp} onChange={() => handleToggle('projectUpdatesInApp')} srLabel="Project updates in-app" /> */}
                                </div>
                            </li>
                            <li className="py-4 flex justify-between items-center">
@@ -127,6 +80,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentTheme, setTheme }) =
                                </div>
                                <div className="flex space-x-4">
                                    <ToggleSwitch enabled={notifications.simulationCompleteEmail} onChange={() => handleToggle('simulationCompleteEmail')} srLabel="Simulation complete email" />
+                                   {/* <ToggleSwitch enabled={notifications.simulationCompleteInApp} onChange={() => handleToggle('simulationCompleteInApp')} srLabel="Simulation complete in-app" /> */}
                                </div>
                            </li>
                            <li className="py-4 flex justify-between items-center">
@@ -158,8 +112,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentTheme, setTheme }) =
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
-      <div className="flex flex-col lg:flex-row space-y-8 lg:space-y-0 lg:space-x-8">
-          <aside className="lg:w-1/4">
+      <div className="flex space-x-8">
+          <aside className="w-1/4">
               <div className="space-y-1">
                   {tabs.map(tab => (
                        <button
@@ -177,7 +131,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ currentTheme, setTheme }) =
                   ))}
               </div>
           </aside>
-          <main className="flex-1">
+          <main className="w-3/4">
               {renderContent()}
           </main>
       </div>

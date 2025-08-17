@@ -1,35 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from '../ui/Icon';
-import { Page, Theme, Project, Simulation } from '../../types';
-import Breadcrumbs from './Breadcrumbs';
+import { Page, Theme } from '../../types';
 
 interface TopNavBarProps {
+    title?: string;
     onLogout: () => void;
     onNavigate: (page: Page) => void;
-    navigateToDashboard: () => void;
     searchQuery?: string;
     setSearchQuery?: (query: string) => void;
     hideSearch?: boolean;
     theme: Theme;
     setTheme: (theme: Theme) => void;
-    project: Project | null;
-    isStudio: boolean;
-    simulation: Simulation | null;
 }
 
-const TopNavBar: React.FC<TopNavBarProps> = ({ 
-    onLogout, 
-    onNavigate,
-    navigateToDashboard,
-    searchQuery, 
-    setSearchQuery, 
-    hideSearch = false, 
-    theme, 
-    setTheme,
-    project,
-    isStudio,
-    simulation
-}) => {
+const TopNavBar: React.FC<TopNavBarProps> = ({ title, onLogout, onNavigate, searchQuery, setSearchQuery, hideSearch = false, theme, setTheme }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   
@@ -43,35 +27,21 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleNavigateToProject = () => {
-    if (project) {
-        // This is a bit of a hack. In a real router, you'd navigate to `/projects/${project.id}`
-        // For our state machine, we just need to exit studio mode.
-        onNavigate('Projects'); // This will reset the view in App.tsx
-        onNavigate(project.id as any); // This is a trick to re-select the project
-    }
-  }
-
   return (
-    <header className="bg-primary-bg/80 backdrop-blur-lg border-b border-border h-16 flex items-center px-6 flex-shrink-0 z-50">
-      <div className="flex items-center space-x-4">
-        <button onClick={navigateToDashboard} className="flex items-center space-x-3 group">
-            <div className="w-8 h-8 text-primary-accent group-hover:opacity-80 transition-opacity">
-                <Icon name="logo" />
-            </div>
-            <h1 className="text-xl font-bold text-text-primary group-hover:opacity-80 transition-opacity">AuraSphere</h1>
-        </button>
+    <div className="bg-primary-bg/80 backdrop-blur-lg border-b border-border h-16 flex items-center px-6 fixed top-0 left-0 right-0 z-40">
+      <div className="flex items-center space-x-3">
+        <div className="w-8 h-8 text-primary-accent">
+            <Icon name="logo" />
+        </div>
+        <h1 className="text-xl font-bold text-text-primary">AuraSphere</h1>
       </div>
 
-       <div className="w-px h-6 bg-border mx-4"></div>
-        
-       <Breadcrumbs 
-            project={project}
-            isStudio={isStudio}
-            simulation={simulation}
-            onNavigateToDashboard={navigateToDashboard}
-            onNavigateToProject={() => onNavigate('Projects')} // A simplified way to get back
-       />
+      {title && (
+          <>
+            <div className="w-px h-6 bg-border mx-6"></div>
+            <h2 className="text-lg text-text-secondary">{title}</h2>
+          </>
+      )}
       
       {hideSearch ? <div className="flex-1" /> : (
         <div className="flex-1 flex justify-center px-12">
@@ -121,7 +91,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
             )}
         </div>
       </div>
-    </header>
+    </div>
   );
 };
 

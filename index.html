@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
@@ -17,48 +17,29 @@
     "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
     "@google/genai": "https://esm.sh/@google/genai@^1.14.0",
     "react-markdown": "https://esm.sh/react-markdown@9.0.1",
-    "remark-gfm": "https://esm.sh/remark-gfm@4.0.0",
-    "path": "https://esm.sh/path@^0.12.7",
-    "vite": "https://esm.sh/vite@^7.1.2"
+    "remark-gfm": "https://esm.sh/remark-gfm@4.0.0"
   }
 }
 </script>
   <script>
     tailwind.config = {
-      darkMode: 'class', // This is still needed for Tailwind's dark: selector to work with the data-theme attribute strategy
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
           },
           colors: {
-            'primary-bg': 'var(--primary-bg)',
-            'secondary-bg': 'var(--secondary-bg)',
-            'primary-accent': 'var(--primary-accent)',
-            'secondary-accent': 'var(--secondary-accent)',
-            'text-primary': 'var(--text-primary)',
-            'text-secondary': 'var(--text-secondary)',
-            'border': 'var(--border)',
-            'success': 'var(--success)',
-            'warning': 'var(--warning)',
-            'danger': 'var(--danger)',
+            'primary-bg': '#0D1117',
+            'secondary-bg': '#161B22',
+            'primary-accent': '#33A0FF',
+            'secondary-accent': '#FFA500',
+            'text-primary': '#E6EDF3',
+            'text-secondary': '#8B949E',
+            'border': '#30363D',
           },
           boxShadow: {
-            'glow': '0 0 15px 0 var(--shadow-glow)',
-          },
-          keyframes: {
-            fadeInUp: {
-              '0%': { opacity: '0', transform: 'translateY(20px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            fadeIn: {
-              '0%': { opacity: '0' },
-              '100%': { opacity: '1' },
-            }
-          },
-          animation: {
-            'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
-            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'glow': '0 0 15px 0 rgba(51, 160, 255, 0.3)',
           }
         }
       }
@@ -66,7 +47,7 @@
   </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-primary-bg text-text-primary antialiased font-sans">
+  <body class="bg-primary-bg text-text-primary antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

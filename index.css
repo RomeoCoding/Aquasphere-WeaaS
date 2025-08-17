@@ -1,0 +1,78 @@
+:root {
+  --primary-bg: #FFFFFF;
+  --secondary-bg: #F0F2F5;
+  --primary-accent: #4F46E5; /* Indigo 600 */
+  --secondary-accent: #F59E0B; /* Amber 500 */
+  --text-primary: #1F2937; /* Gray 800 */
+  --text-secondary: #6B7280; /* Gray 500 */
+  --border: #D1D5DB; /* Gray 300 */
+  --success: #10B981; /* Green 500 */
+  --warning: #FBBF24; /* Amber 400 */
+  --danger: #EF4444; /* Red 500 */
+  --shadow-glow: rgba(79, 70, 229, 0.3);
+}
+
+html[data-theme='dark'] {
+  --primary-bg: #0D1117;
+  --secondary-bg: #161B22;
+  --primary-accent: #33A0FF;
+  --secondary-accent: #FFA500;
+  --text-primary: #E6EDF3;
+  --text-secondary: #8B949E;
+  --border: #30363D;
+  --success: #22c55e; /* Green 500 */
+  --warning: #facc15; /* Yellow 400 */
+  --danger: #f87171; /* Red 400 */
+  --shadow-glow: rgba(51, 160, 255, 0.3);
+}
+
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* For React-Markdown prose styles */
+.prose {
+    --tw-prose-body: var(--text-secondary);
+    --tw-prose-headings: var(--text-primary);
+    --tw-prose-lead: var(--text-secondary);
+    --tw-prose-links: var(--primary-accent);
+    --tw-prose-bold: var(--text-primary);
+    --tw-prose-counters: var(--text-secondary);
+    --tw-prose-bullets: var(--border);
+    --tw-prose-hr: var(--border);
+    --tw-prose-quotes: var(--text-primary);
+    --tw-prose-quote-borders: var(--border);
+    --tw-prose-captions: var(--text-secondary);
+    --tw-prose-code: var(--text-primary);
+    --tw-prose-pre-code: var(--text-secondary);
+    --tw-prose-pre-bg: var(--primary-bg);
+    --tw-prose-th-borders: var(--border);
+    --tw-prose-td-borders: var(--border);
+    transition: all 0.3s ease;
+}
+
+html[data-theme='dark'] .prose {
+    --tw-prose-body: var(--text-secondary);
+    --tw-prose-headings: var(--text-primary);
+    --tw-prose-lead: var(--text-secondary);
+    --tw-prose-links: var(--primary-accent);
+    --tw-prose-bold: var(--text-primary);
+    --tw-prose-counters: var(--text-secondary);
+    --tw-prose-bullets: var(--border);
+    --tw-prose-hr: var(--border);
+    --tw-prose-quotes: var(--text-primary);
+    --tw-prose-quote-borders: var(--border);
+    --tw-prose-captions: var(--text-secondary);
+    --tw-prose-code: var(--text-primary);
+    --tw-prose-pre-code: var(--text-secondary);
+    --tw-prose-pre-bg: var(--secondary-bg);
+    --tw-prose-th-borders: var(--border);
+    --tw-prose-td-borders: var(--border);
+}
+
+@keyframes draw-arc {
+    0% { stroke-dashoffset: 80; opacity: 0; }
+    20% { opacity: 1; }
+    80% { stroke-dashoffset: 0; opacity: 1; }
+    100% { opacity: 0; }
+}
